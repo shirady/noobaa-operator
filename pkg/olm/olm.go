@@ -277,8 +277,10 @@ func GenerateCSV(opConf *operator.Conf, csvParams *generateCSVParams) *operv1.Cl
 
 	if csvParams != nil {
 		if csvParams.IsForODF {
-			// add anotation to hide the operator in OCP console
+			// add annotations to hide the operator in OCP console
 			csv.Annotations["operators.operatorframework.io/operator-type"] = "non-standalone"
+			// annotation for OpenShift AWS STS cluster
+			csv.Annotations["features.operators.openshift.io/token-auth-aws"] = "true"
 
 			// add env vars for noobaa-core and noobaa-db images
 			operatorContainer := &csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.Containers[0]
