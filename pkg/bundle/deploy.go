@@ -5835,7 +5835,7 @@ spec:
   sourceNamespace: default
 `
 
-const Sha256_deploy_operator_yaml = "439f5d9032805eeff3de6520c9baa1b178f1b044091c432f1196349ffb7f544e"
+const Sha256_deploy_operator_yaml = "0213087a3730556edb754abc5b971c69a459ef0c8400a208e02ca58b89d82e36"
 
 const File_deploy_operator_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -5857,6 +5857,14 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
+      # This service account token can be used to provide identity outside the cluster.
+      # For example, this token can be used with AssumeRoleWithWebIdentity to authenticate with AWS using IAM OIDC provider and STS.
+      - name: bound-sa-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              audience: openshift
       - name: oidc-token
         projected:
           sources:
@@ -5877,6 +5885,9 @@ spec:
         - name: noobaa-operator
           image: NOOBAA_OPERATOR_IMAGE
           volumeMounts:
+          - name: bound-sa-token
+            mountPath: /var/run/secrets/openshift/serviceaccount
+            readOnly: true
           - mountPath: /etc/pki/ca-trust/extracted/pem
             name: noobaa-ca-inject
           resources:
