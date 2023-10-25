@@ -686,6 +686,13 @@ func (r *Reconciler) ReconcileAWSCredentials() error {
 	// cluster admin set this env (either in the UI in ARN details or via Subscription yaml) and set the mode to manual
 	// olm will then copy the env from the subscription to the operator deployment (which is where your operator can pick it up from)
 	roleARN := os.Getenv("ROLEARN")
+	if roleARN == "" {
+		r.Logger.Info("ROLEARN environment variable was empty/unset, will check if AWSSTSARN was set in options",
+			r.NooBaa.Spec.AWSSTSARN)
+		if r.NooBaa.Spec.AWSSTSARN != "" {
+			roleARN = r.NooBaa.Spec.AWSSTSARN
+		}
+	}
 	r.Logger.Info("Getting role ARN", "role ARN = ", roleARN)
 	if roleARN != "" {
 		if !arn.IsARN(roleARN) {

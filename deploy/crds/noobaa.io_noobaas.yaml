@@ -909,6 +909,10 @@ spec:
                     description: Prometheus namespace that scrap metrics from noobaa
                     type: string
                 type: object
+              awsstsarn:
+                description: AWSSTSARN (optional) is AWS STS Role ARN which will assume
+                  role
+                type: string
               cleanupPolicy:
                 description: CleanupPolicy (optional) Indicates user's policy for
                   deletion

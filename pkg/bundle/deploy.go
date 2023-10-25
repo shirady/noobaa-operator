@@ -1469,7 +1469,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaas_yaml = "ff8f0cf9e0a1429984e9518f0a143634644cfd0b1a955449d36917550ea060ce"
+const Sha256_deploy_crds_noobaa_io_noobaas_yaml = "bc9bcb0c55084c06e728e764b437cc9b9d94e69d87e60451d695e79c2f0eaaf6"
 
 const File_deploy_crds_noobaa_io_noobaas_yaml = `---
 apiVersion: apiextensions.k8s.io/v1
@@ -2382,6 +2382,10 @@ spec:
                     description: Prometheus namespace that scrap metrics from noobaa
                     type: string
                 type: object
+              awsstsarn:
+                description: AWSSTSARN (optional) is AWS STS Role ARN which will assume
+                  role
+                type: string
               cleanupPolicy:
                 description: CleanupPolicy (optional) Indicates user's policy for
                   deletion

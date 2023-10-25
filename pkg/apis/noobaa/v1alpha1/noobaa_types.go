@@ -217,6 +217,10 @@ type NooBaaSpec struct {
 	// Configuration related to autoscaling
 	// +optional
 	Autoscaler AutoscalerSpec `json:"autoscaler,omitempty"`
+
+	// AWSSTSARN (optional) is AWS STS Role ARN which will assume role
+	// +optional
+	AWSSTSARN string `json:"awsstsarn,omitempty"`
 }
 
 // AutoscalerSpec defines different actoscaling spec such as autoscaler type and prometheus namespace
