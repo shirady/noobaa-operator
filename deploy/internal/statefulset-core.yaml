@@ -36,7 +36,16 @@ spec:
         - name: noobaa-server
           secret:
             secretName: noobaa-server
-            optional: true    
+            optional: true
+      # This service account token can be used to provide identity outside the cluster.
+      # For example, this token can be used with AssumeRoleWithWebIdentity to authenticate with AWS using IAM OIDC provider and STS.
+        - name: bound-sa-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: token
+                audience: openshift
+        # This service account token is used to test a setup of noobaa with AWS STS (using AssumeRoleWithWebIdentity)
         - name: oidc-token
           projected:
             sources:
@@ -62,8 +71,11 @@ spec:
             - name: noobaa-server
               mountPath: /etc/noobaa-server
               readOnly: true
-            - mountPath: /var/run/secrets/openshift/serviceaccount
-              name: oidc-token
+            - name: oidc-token
+              mountPath: /var/run/secrets/openshift/serviceaccount
+              readOnly: true
+            - name: bound-sa-token
+              mountPath: /var/run/secrets/openshift/serviceaccount
               readOnly: true
           resources:
             requests:

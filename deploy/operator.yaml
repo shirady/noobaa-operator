@@ -26,6 +26,7 @@ spec:
           - serviceAccountToken:
               path: token
               audience: openshift
+      # This service account token is used to test a setup of noobaa with AWS STS (using AssumeRoleWithWebIdentity)
       - name: oidc-token
         projected:
           sources:
@@ -49,8 +50,12 @@ spec:
           - name: bound-sa-token
             mountPath: /var/run/secrets/openshift/serviceaccount
             readOnly: true
+          - name: oidc-token
+          - mountPath: /var/run/secrets/openshift/serviceaccount
+          - name: noobaa-ca-inject
           - mountPath: /etc/pki/ca-trust/extracted/pem
-            name: noobaa-ca-inject
+          - name: socket
+            mountPath: /var/lib/cosi
           resources:
             limits:
               cpu: "250m"
@@ -66,11 +71,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          volumeMounts:
-          - mountPath: /var/run/secrets/openshift/serviceaccount
-            name: oidc-token
-          - mountPath: /var/lib/cosi
-            name: socket
         - name: objectstorage-provisioner-sidecar
           image: COSI_SIDECAR_IMAGE
           args:
