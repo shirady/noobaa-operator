@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 const (
@@ -814,13 +816,55 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 		region = "us-east-1"
 	}
 	r.Logger.Infof("identified aws region %s", region)
-	s3Config := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(
-			cloudCredsSecret.StringData["aws_access_key_id"],
-			cloudCredsSecret.StringData["aws_secret_access_key"],
-			"",
-		),
-		Region: &region,
+	var s3Config *aws.Config
+	if !r.IsAWSSTSCluster {
+		s3Config = &aws.Config{
+			Credentials: credentials.NewStaticCredentials(
+				cloudCredsSecret.StringData["aws_access_key_id"],
+				cloudCredsSecret.StringData["aws_secret_access_key"],
+				"",
+			),
+			Region: &region,
+		}
+	} else {
+		// get credentials
+		if len(cloudCredsSecret.StringData["credentials"]) == 0 {
+			return fmt.Errorf("invalid secret for aws sts credentials")
+		}
+		roleARNInput := cloudCredsSecret.StringData["role_name"]
+		webIdentityTokenPathInput := cloudCredsSecret.StringData["web_identity_token_file"]
+		r.Logger.Info("Initiating a Session with AWS")
+		sess, err := session.NewSession()
+		if err != nil {
+			return fmt.Errorf("could not create AWS Session %v", err)
+		}
+		stsClient := sts.New(sess)
+		r.Logger.Infof("AssumeRoleWithWebIdentityInput, roleARN = %s webIdentityTokenPath = %s, ",
+			roleARNInput, webIdentityTokenPathInput)
+		webIdentityTokenPathOutput, err := os.ReadFile(webIdentityTokenPathInput)
+		if err != nil {
+			return fmt.Errorf("could not read WebIdentityToken from path %s, %v",
+				webIdentityTokenPathInput, err)
+		}
+		WebIdentityToken := string(webIdentityTokenPathOutput)
+		input := &sts.AssumeRoleWithWebIdentityInput{
+			RoleArn:          aws.String(roleARNInput),
+			RoleSessionName:  aws.String("default_noobaa_backingstore"),
+			WebIdentityToken: aws.String(WebIdentityToken),
+		}
+		result, err := stsClient.AssumeRoleWithWebIdentity(input)
+		if err != nil {
+			return fmt.Errorf("could not use AWS AssumeRoleWithWebIdentity with role name %s and web identity token file %s, %v",
+				roleARNInput, webIdentityTokenPathInput, err)
+		}
+		s3Config = &aws.Config{
+			Credentials: credentials.NewStaticCredentials(
+				*result.Credentials.AccessKeyId,
+				*result.Credentials.SecretAccessKey,
+				*result.Credentials.SessionToken,
+			),
+			Region: &region,
+		}
 	}
 
 	bucketName := r.DefaultBackingStore.Spec.AWSS3.TargetBucket
