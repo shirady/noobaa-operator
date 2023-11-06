@@ -44,15 +44,8 @@ spec:
             sources:
             - serviceAccountToken:
                 path: token
+                # For testing purposes change the audience to api
                 audience: openshift
-        # This service account token is used to test a setup of noobaa with AWS STS (using AssumeRoleWithWebIdentity)
-        - name: oidc-token
-          projected:
-            sources:
-            - serviceAccountToken:
-                path: oidc-token
-                expirationSeconds: 3600
-                audience: api
       containers:
         #----------------#
         # CORE CONTAINER #
@@ -70,9 +63,6 @@ spec:
               readOnly: true
             - name: noobaa-server
               mountPath: /etc/noobaa-server
-              readOnly: true
-            - name: oidc-token
-              mountPath: /var/run/secrets/openshift/serviceaccount
               readOnly: true
             - name: bound-sa-token
               mountPath: /var/run/secrets/openshift/serviceaccount
