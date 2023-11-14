@@ -38,6 +38,7 @@ import (
 const (
 	upgradeJobBackoffLimit        = int32(4)
 	webIdentityTokenPath   string = "/var/run/secrets/openshift/serviceaccount/token"
+	roleARNEnvVar          string = "ROLEARN"
 )
 
 // ReconcilePhaseCreating runs the reconcile phase
@@ -685,9 +686,9 @@ func (r *Reconciler) ReconcileAWSCredentials() error {
 	// check if we have the env var ROLEARN that indicates that this is an OpenShift AWS STS cluster
 	// cluster admin set this env (either in the UI in ARN details or via Subscription yaml) and set the mode to manual
 	// olm will then copy the env from the subscription to the operator deployment (which is where your operator can pick it up from)
-	roleARN := os.Getenv("ROLEARN")
+	roleARN := os.Getenv(roleARNEnvVar)
 	if roleARN == "" {
-		r.Logger.Info("ROLEARN environment variable was empty/unset, will check if AWSSTSARN was set in options",
+		r.Logger.Info(roleARNEnvVar, "environment variable was empty/unset, will check if AWSSTSARN was set in options",
 			r.NooBaa.Spec.AWSSTSARN)
 		if r.NooBaa.Spec.AWSSTSARN != "" {
 			roleARN = r.NooBaa.Spec.AWSSTSARN
