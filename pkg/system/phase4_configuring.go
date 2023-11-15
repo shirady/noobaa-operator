@@ -858,7 +858,7 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 		WebIdentityToken := string(webIdentityTokenPathOutput)
 		input := &sts.AssumeRoleWithWebIdentityInput{
 			RoleArn:          aws.String(roleARNInput),
-			RoleSessionName:  aws.String("default_noobaa_backingstore"),
+			RoleSessionName:  aws.String(r.AWSSTSRoleSessionName),
 			WebIdentityToken: aws.String(WebIdentityToken),
 		}
 		result, err := stsClient.AssumeRoleWithWebIdentity(input)
