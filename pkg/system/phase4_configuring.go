@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"encoding/base64"
 	"encoding/json"
 
 	"cloud.google.com/go/storage"
@@ -830,17 +829,16 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 		}
 	} else {
 		// get credentials
-		if len(cloudCredsSecret.Data[credentialsKey]) == 0 {
+		if len(cloudCredsSecret.StringData[credentialsKey]) == 0 {
 			return fmt.Errorf("invalid secret for aws sts credentials (should contain %s under data)",
 				credentialsKey)
 		}
-		data := cloudCredsSecret.Data[credentialsKey]
+		data := cloudCredsSecret.StringData[credentialsKey]
 		info, err := r.getInfoFromAwsStsSecret(data)
 		if err != nil {
 			return fmt.Errorf("could not get the credentials from the aws sts secret %v", err)
 		}
-
-		roleARNInput := info["role_name"]
+		roleARNInput := info["role_arn"]
 		webIdentityTokenPathInput := info["web_identity_token_file"]
 		r.Logger.Info("Initiating a Session with AWS")
 		sess, err := session.NewSession()
@@ -1313,23 +1311,13 @@ func (r *Reconciler) ReconcileOBCStorageClass() error {
 }
 
 // getInfoFromAwsStsSecret would return map with keys of role_arn and web_identity_token_file and their values
-// Inside the Secret that was created by the cloud credential request there is credentials under data (example of yaml):
-// data:
-//
-//	credentials:
-//
 // After decoding this field should see structure:
 // [default]
 // sts_regional_endpoints = regional
 // role_arn = arn:aws:iam::>account-id>:role/<role-name>
 // web_identity_token_file = /var/run/secrets/openshift/serviceaccount/token
-func (r *Reconciler) getInfoFromAwsStsSecret(data []byte) (map[string]string, error) {
-	decodedBytes, err := base64.StdEncoding.DecodeString(string(data))
-	if err != nil {
-		return nil, fmt.Errorf("error decoding base64 string: %v", err)
-	}
-	decodedString := string(decodedBytes)
-	lines := strings.Split(decodedString, "\n")
+func (r *Reconciler) getInfoFromAwsStsSecret(data string) (map[string]string, error) {
+	lines := strings.Split(data, "\n")
 
 	result := make(map[string]string)
 	lines = lines[2:]
