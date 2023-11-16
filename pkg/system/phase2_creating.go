@@ -683,6 +683,7 @@ func (r *Reconciler) ReconcileRGWCredentials() error {
 
 // ReconcileAWSCredentials creates a CredentialsRequest resource if cloud credentials operator is available
 func (r *Reconciler) ReconcileAWSCredentials() error {
+	r.IsAWSSTSCluster = true // SDSD for test
 	// check if we have the env var ROLEARN that indicates that this is an OpenShift AWS STS cluster
 	// cluster admin set this env (either in the UI in ARN details or via Subscription yaml) and set the mode to manual
 	// olm will then copy the env from the subscription to the operator deployment (which is where your operator can pick it up from)
