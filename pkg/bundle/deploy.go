@@ -4641,7 +4641,7 @@ spec:
   versionPriority: 100
 `
 
-const Sha256_deploy_internal_hpav2_autoscaling_yaml = "5af69e55a40026f5a01d102232fbecb1ecbc2c5482f60b1226baf5fe2afc07e6"
+const Sha256_deploy_internal_hpav2_autoscaling_yaml = "66c39987f8cd19bf39875c98a90903060cf8c549ec80109648c508751868fd6d"
 
 const File_deploy_internal_hpav2_autoscaling_yaml = `kind: HorizontalPodAutoscaler
 apiVersion: autoscaling/v2
@@ -4654,12 +4654,17 @@ spec:
     kind: Deployment
     name: noobaa-endpoint
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
+  - type: Object
+    object:
+      metric:
+        name: container_cpu_usage_seconds_per_second
+      describedObject:
+        apiVersion: v1
+        kind: Pod
+        name: noobaa-core-0
       target:
-        type: Utilization
-        averageUtilization: 80
+        averageValue: 9M
+        type: AverageValue
 `
 
 const Sha256_deploy_internal_hpav2_configmap_adapter_yaml = "8f857756f46511c8763fbc03e9373cb3eec11c2251d7a844ae4990d55208336b"
