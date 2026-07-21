@@ -14,6 +14,7 @@ import (
 	"github.com/noobaa/noobaa-operator/v5/pkg/cnpg"
 	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
+	secv1 "github.com/openshift/api/security/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -250,6 +251,13 @@ func (r *Reconciler) reconcileClusterSpec(dbSpec *nbv1.NooBaaDBSpec) error {
 		r.CNPGCluster.Spec.InheritedMetadata.Labels = map[string]string{}
 	}
 	r.CNPGCluster.Spec.InheritedMetadata.Labels["app"] = "noobaa"
+
+	// set openshift.io/required-scc annotation on the cluster metadata
+	// to be inherited by DB pods via CNPG operator's INHERITED_ANNOTATIONS configuration
+	if r.CNPGCluster.ObjectMeta.Annotations == nil {
+		r.CNPGCluster.ObjectMeta.Annotations = map[string]string{}
+	}
+	r.CNPGCluster.ObjectMeta.Annotations[secv1.RequiredSCCAnnotation] = "restricted-v2"
 
 	// update the image catalog ref
 	desiredMajorVersion := getDesiredMajorVersion(dbSpec)

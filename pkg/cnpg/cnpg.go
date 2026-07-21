@@ -415,6 +415,13 @@ func modifyResources(cnpgRes *CnpgResources) {
 	// update the configmap namespace
 	cnpgRes.ConfigMap.Namespace = options.Namespace
 
+	// configure CNPG to inherit the openshift.io/required-scc annotation
+	// from Cluster metadata to all managed resources including pods
+	if cnpgRes.ConfigMap.Data == nil {
+		cnpgRes.ConfigMap.Data = map[string]string{}
+	}
+	cnpgRes.ConfigMap.Data["INHERITED_ANNOTATIONS"] = "openshift.io/required-scc"
+
 	// update the namespace in the  mutating webhooks
 	for i := range cnpgRes.MutatingWebhookConfiguration.Webhooks {
 		cnpgRes.MutatingWebhookConfiguration.Webhooks[i].ClientConfig.Service.Namespace = options.Namespace
