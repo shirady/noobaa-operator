@@ -286,7 +286,8 @@ type ReadNamespaceResourceParams struct {
 
 // ReadySystemStatusReply is the reply to system_pai.get_system_status()
 type ReadySystemStatusReply struct {
-	State string `json:"state,omitempty"`
+	State           string `json:"state,omitempty"`
+	LastStateChange int64  `json:"last_state_change,omitempty"`
 }
 
 // ListAccountsReply is the reply to account_api.list_accounts()
