@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
+	"github.com/noobaa/noobaa-operator/v5/pkg/constants"
 	"github.com/noobaa/noobaa-operator/v5/pkg/nb"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +58,50 @@ func ValidateBackingStore(bs nbv1.BackingStore) error {
 	default:
 		return util.ValidationError{
 			Msg: "Invalid Backingstore type, please provide a valid Backingstore type",
+		}
+	}
+	return nil
+}
+
+// validate changes to endpoint on backingstore
+func ValidateBSEndpointChange(bs, oldBs nbv1.BackingStore) error {
+	// skip validation if connection CLI has added the pause annotation
+	if bs.Annotations != nil && bs.Annotations[constants.PauseReconcile] == "true" {
+		return nil
+	}
+
+	switch bs.Spec.Type {
+	case nbv1.StoreTypeS3Compatible:
+		if oldBs.Spec.S3Compatible == nil {
+			return util.ValidationError{
+				Msg: "Invalid old BackingStore: S3Compatible spec is missing",
+			}
+		}
+		if bs.Spec.S3Compatible != nil {
+			equal, err := EndpointsEquivalent(bs.Spec.S3Compatible.Endpoint, oldBs.Spec.S3Compatible.Endpoint)
+			if err != nil {
+				return err
+			} else if !equal {
+				return util.ValidationError{
+					Msg: "Changing a Backingstore endpoint is supported only using the connection CLI",
+				}
+			}
+		}
+	case nbv1.StoreTypeIBMCos:
+		if oldBs.Spec.IBMCos == nil {
+			return util.ValidationError{
+				Msg: "Invalid old BackingStore: IBMCos spec is missing",
+			}
+		}
+		if bs.Spec.IBMCos != nil {
+			equal, err := EndpointsEquivalent(bs.Spec.IBMCos.Endpoint, oldBs.Spec.IBMCos.Endpoint)
+			if err != nil {
+				return err
+			} else if !equal {
+				return util.ValidationError{
+					Msg: "Changing a Backingstore endpoint is supported only using the connection CLI",
+				}
+			}
 		}
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
+	"github.com/noobaa/noobaa-operator/v5/pkg/constants"
 	"github.com/noobaa/noobaa-operator/v5/pkg/validations"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -192,6 +193,26 @@ func TestValidateNSEndpointChange(t *testing.T) {
 	err := validations.ValidateNSEndpointChange(newNS, oldNS)
 	AssertError(t, err, "S3Compatible endpoint change should be denied")
 
+	// endpoint change not allowed when pause annotation is set any value other than true
+	oldNS = getDefaultS3CompatibleNsStore()
+	newNS = getDefaultS3CompatibleNsStore()
+	newNS.Annotations = map[string]string{
+		constants.PauseReconcile: "false",
+	}
+	newNS.Spec.S3Compatible.Endpoint = "https://different-endpoint.example.com"
+	err = validations.ValidateNSEndpointChange(newNS, oldNS)
+	AssertError(t, err, "Endpoint change with pause annotation 'false' should be not allowed")
+
+	// S3Compatible: endpoint change should be allowed on pause annotation
+	oldNS = getDefaultS3CompatibleNsStore()
+	newNS = getDefaultS3CompatibleNsStore()
+	newNS.Annotations = map[string]string{
+		constants.PauseReconcile: "true",
+	}
+	newNS.Spec.S3Compatible.Endpoint = "https://different-endpoint.example.com"
+	err = validations.ValidateNSEndpointChange(newNS, oldNS)
+	AssertNotError(t, err, "S3Compatible endpoint change with pause annotation should be allowed")
+
 	// S3Compatible: only secret changed, endpoint same — should be allowed
 	oldNS = getDefaultS3CompatibleNsStore()
 	newNS = getDefaultS3CompatibleNsStore()
@@ -208,12 +229,19 @@ func TestValidateNSEndpointChange(t *testing.T) {
 	err = validations.ValidateNSEndpointChange(newNS, oldNS)
 	AssertNotError(t, err, "S3Compatible secret rotation with equivalent endpoints should be allowed")
 
-	// S3Compatible: nil spec on either side — should not panic and should be allowed
+	// S3Compatible: nil old spec should return error
 	oldNS = getDefaultS3CompatibleNsStore()
 	oldNS.Spec.S3Compatible = nil
 	newNS = getDefaultS3CompatibleNsStore()
 	err = validations.ValidateNSEndpointChange(newNS, oldNS)
-	AssertNotError(t, err, "nil old S3Compatible spec should not cause error or panic")
+	AssertError(t, err, "nil old S3Compatible spec should return error")
+
+	// IBMCos: nil old spec should return error
+	oldIBMNil := getDefaultIBMCosNsStore()
+	oldIBMNil.Spec.IBMCos = nil
+	newIBMNil := getDefaultIBMCosNsStore()
+	err = validations.ValidateNSEndpointChange(newIBMNil, oldIBMNil)
+	AssertError(t, err, "nil old IBMCos spec should return error")
 
 	// IBMCos: endpoint change should be denied
 	oldIBM := getDefaultIBMCosNsStore()
@@ -221,6 +249,16 @@ func TestValidateNSEndpointChange(t *testing.T) {
 	newIBM.Spec.IBMCos.Endpoint = "https://different-ibm-endpoint.example.com"
 	err = validations.ValidateNSEndpointChange(newIBM, oldIBM)
 	AssertError(t, err, "IBMCos endpoint change should be denied")
+
+	// IBMCos: endpoint change should be allowed on pause annotation
+	oldIBM = getDefaultIBMCosNsStore()
+	newIBM = getDefaultIBMCosNsStore()
+	newIBM.Annotations = map[string]string{
+		constants.PauseReconcile: "true",
+	}
+	newIBM.Spec.IBMCos.Endpoint = "https://different-ibm-endpoint.example.com"
+	err = validations.ValidateNSEndpointChange(newIBM, oldIBM)
+	AssertNotError(t, err, "IBMCos endpoint change with pause annotation should be allowed")
 
 	// IBMCos: only secret changed, endpoint same — should be allowed
 	oldIBM = getDefaultIBMCosNsStore()

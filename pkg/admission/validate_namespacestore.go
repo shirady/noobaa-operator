@@ -81,12 +81,12 @@ func (nsv *ResourceValidator) ValidateUpdateNS() {
 		return
 	}
 
-	if err := validations.ValidateNSEndpointChange(*ns, *oldNS); err != nil && util.IsValidationError(err) {
+	if err := validations.ValidateNamespaceStore(ns); err != nil && util.IsValidationError(err) {
 		nsv.SetValidationResult(false, err.Error())
 		return
 	}
 
-	if err := validations.ValidateNamespaceStore(ns); err != nil && util.IsValidationError(err) {
+	if err := validations.ValidateNSEndpointChange(*ns, *oldNS); err != nil && util.IsValidationError(err) {
 		nsv.SetValidationResult(false, err.Error())
 		return
 	}
