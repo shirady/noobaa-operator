@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
+	"github.com/noobaa/noobaa-operator/v5/pkg/constants"
 	"github.com/noobaa/noobaa-operator/v5/pkg/nb"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 )
@@ -446,28 +447,43 @@ func ValidateNSArchiveSpec(nsStore nbv1.NamespaceStore) error {
 
 // ValidateNSEndpointChange validates the user is not trying to update the namespacestore endpoint
 func ValidateNSEndpointChange(ns nbv1.NamespaceStore, oldNs nbv1.NamespaceStore) error {
+	// skip validation if connection CLI has added the pause annotation
+	if ns.Annotations != nil && ns.Annotations[constants.PauseReconcile] == "true" {
+		return nil
+	}
+
 	switch ns.Spec.Type {
 	case nbv1.NSStoreTypeS3Compatible:
-		if oldNs.Spec.S3Compatible != nil && ns.Spec.S3Compatible != nil {
+		if oldNs.Spec.S3Compatible == nil {
+			return util.ValidationError{
+				Msg: "Invalid old NamespaceStore: S3Compatible spec is missing",
+			}
+		}
+		if ns.Spec.S3Compatible != nil {
 			equal, err := EndpointsEquivalent(oldNs.Spec.S3Compatible.Endpoint, ns.Spec.S3Compatible.Endpoint)
 			if err != nil {
 				return err
 			}
 			if !equal {
 				return util.ValidationError{
-					Msg: "Changing a NamespaceStore endpoint is unsupported; delete and re-create the NamespaceStore",
+					Msg: "Changing a NamespaceStore endpoint is supported only using the connection CLI",
 				}
 			}
 		}
 	case nbv1.NSStoreTypeIBMCos:
-		if oldNs.Spec.IBMCos != nil && ns.Spec.IBMCos != nil {
+		if oldNs.Spec.IBMCos == nil {
+			return util.ValidationError{
+				Msg: "Invalid old NamespaceStore: IBMCos spec is missing",
+			}
+		}
+		if ns.Spec.IBMCos != nil {
 			equal, err := EndpointsEquivalent(oldNs.Spec.IBMCos.Endpoint, ns.Spec.IBMCos.Endpoint)
 			if err != nil {
 				return err
 			}
 			if !equal {
 				return util.ValidationError{
-					Msg: "Changing a NamespaceStore endpoint is unsupported; delete and re-create the NamespaceStore",
+					Msg: "Changing a NamespaceStore endpoint is supported only using the connection CLI",
 				}
 			}
 		}

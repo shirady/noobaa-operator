@@ -84,6 +84,10 @@ func (bsv *ResourceValidator) ValidateUpdateBS() {
 		bsv.SetValidationResult(false, err.Error())
 		return
 	}
+	if err := validations.ValidateBSEndpointChange(*bs, *oldBS); err != nil && util.IsValidationError(err) {
+		bsv.SetValidationResult(false, err.Error())
+		return
+	}
 
 	switch bs.Spec.Type {
 	case nbv1.StoreTypePVPool:
