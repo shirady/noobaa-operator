@@ -173,7 +173,8 @@ function timeout {
 }
 
 function test_aws {
-     if [ "${1}" == "silence" ]; then
+    local silence
+    if [ "${1}" == "silence" ]; then
         silence=true
         shift
     fi
@@ -195,7 +196,7 @@ function test_aws {
     if [ $? -ne 0 ]; then
         echo_time "❌  aws ${options} failed, Exiting"
         exit 1
-    elif [ ! ${silence} ]; then
+    elif [ -z "${silence}" ]; then
         echo_time "✅  aws ${options} passed"
     fi
 }
@@ -530,6 +531,7 @@ function check_pv_pool_resources {
             --request-memory $(mem)Mi \
             --limit-cpu $(cpu)m \
             --limit-memory $(mem)Mi
+            
     #TOD see why it fails, currently disabling as it takes 10 mins.
     # time="2022-04-11T14:18:17Z" level=error msg="❌ BackingStore \"large-request-limit\" Phase is \"Rejected\": Failed connecting all pods in backingstore for more than 10 minutes Current failing: 1 from requested: 1"
     # NAME                           TYPE      TARGET-BUCKET   PHASE      AGE      
@@ -1172,23 +1174,20 @@ function check_default_backingstore {
     fi
 
     echo_time "💬 Disabling Noobaa default backingstore"
-	kuberun patch noobaa/noobaa --type json --patch='[{"op":"add","path":"/spec/manualDefaultBackingStore","value":true}]'
+    kuberun patch noobaa/noobaa --type json --patch='[{"op":"add","path":"/spec/manualDefaultBackingStore","value":true}]'
 
     echo_time "💬 Deleting Noobaa default backingstore and its connected instances"
     echo_time "💬 Deleting buckets"
-    # adding a sleep to avoid seeing buckets in deleting state (in list bucket)
-    # after handling issue: https://github.com/noobaa/noobaa-core/issues/8931
-    # this sleep should be deleted
-    sleep 60
-    test_aws s3 ls
-    for bucket in $(test_aws s3 ls | awk '{print $3}');
-    do  
-        test_aws s3 rb "s3://${bucket}" --force ;
+    wait_for_noobaa_ready
+    local buckets=($(test_noobaa silence bucket list | grep -v "BUCKET-NAME" | awk '{print $1}'))
+    for bucket in ${buckets[@]}
+    do
+        test_noobaa bucket delete "${bucket}"
     done
-    "💬 Deleting non-default accounts"
+    echo_time "💬 Deleting non-default accounts"
     delete_account
 
-    echo_time "💬 Creating new-default-backing-store and updating the admin account default_resourse with it"
+    echo_time "💬 Creating new-default-backing-store and updating the admin account default_resource with it"
     test_noobaa backingstore create pv-pool new-default-backing-store --num-volumes 1 --pv-size-gb 16
     test_noobaa account update admin@noobaa.io --new_default_resource=new-default-backing-store
     test_noobaa account update operator@noobaa.io --new_default_resource=new-default-backing-store
