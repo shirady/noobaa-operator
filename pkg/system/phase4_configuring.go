@@ -47,6 +47,7 @@ const (
 	ibmLocation                       = "%s-standard"
 	ibmCosBucketCred                  = "ibm-cloud-cos-creds"
 	minutesToWaitForDefaultBSCreation = 10
+	systemInitializingTimeout         = 5 * time.Minute // RPCSendTimeout is 2 min, we will wait 5
 	credentialsKey                    = "credentials"
 	metricsAuthKey                    = "metrics_token"
 	serviceMonitorCAFile              = "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"
@@ -227,6 +228,16 @@ func (r *Reconciler) SetDesiredSecretOp() error {
 			// TODO: Try to recover from this situation, maybe delete the system.
 			return util.NewPersistentError("SystemCouldNotInitialize",
 				"Something went wrong during system initialization")
+
+		case "INITIALIZING":
+			// create_system is still running (happy path) or core died mid-create.
+			// Use core last_state_change (epoch ms) so the clock survives operator restarts.
+			// Do not sleep here — a TemporaryError requeues reconcile every 3s.
+			if res1.LastStateChange > 0 && time.Since(time.UnixMilli(res1.LastStateChange)) > systemInitializingTimeout {
+				return util.NewPersistentError("SystemInitializingTimeout",
+					"system stayed INITIALIZING for more than 5 minutes")
+			}
+			return fmt.Errorf("system is still initializing, waiting for READY")
 
 		case "READY":
 			token, err := util.MakeAuthToken(map[string]any{
