@@ -4371,7 +4371,7 @@ data:
     shared_preload_libraries = 'pg_stat_statements'
 `
 
-const Sha256_deploy_internal_deployment_endpoint_yaml = "e55babcc37ae8d7b038ec9394184c1ec8458309cc2511cd5d514bb58bc763993"
+const Sha256_deploy_internal_deployment_endpoint_yaml = "ecc598bf8cace5d61f798aea2b2194196da95c454de9ab8acd392e552c6bf5c2"
 
 const File_deploy_internal_deployment_endpoint_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -4489,6 +4489,11 @@ spec:
                 configMapKeyRef:
                   name: noobaa-config
                   key: NOOBAA_LOG_COLOR
+            - name: ROLLBACK_TO_ICE
+              valueFrom:
+                configMapKeyRef:
+                  name: noobaa-config
+                  key: ROLLBACK_TO_ICE
             - name: NOOBAA_METRICS_AUTH_ENABLED
               valueFrom:
                 configMapKeyRef:
@@ -5107,7 +5112,7 @@ spec:
       storage: 30Gi
 `
 
-const Sha256_deploy_internal_pod_agent_yaml = "46429d12f4a438f4d3666737cd214c5c8bc2d07acf467e7b9a22439c9cc00fc6"
+const Sha256_deploy_internal_pod_agent_yaml = "5cff78327078d03fb7ad086fe8a5225435064aff27ae2715d7ef0fb1fde37fae"
 
 const File_deploy_internal_pod_agent_yaml = `apiVersion: v1
 kind: Pod
@@ -5138,6 +5143,7 @@ spec:
           value: /etc/agent-config/agent_config
         - name: NOOBAA_LOG_LEVEL
         - name: NOOBAA_LOG_COLOR
+        - name: ROLLBACK_TO_ICE
       command: ["/noobaa_init_files/noobaa_init.sh", "agent"]
       # Insert the relevant image for the agent
       ports:
@@ -6200,6 +6206,11 @@ spec:
                 configMapKeyRef:
                   name: noobaa-config
                   key: NOOBAA_LOG_COLOR
+            - name: ROLLBACK_TO_ICE
+              valueFrom:
+                configMapKeyRef:
+                  name: noobaa-config
+                  key: ROLLBACK_TO_ICE
             - name: NOOBAA_METRICS_AUTH_ENABLED
               valueFrom:
                 configMapKeyRef:
@@ -8193,4 +8204,3 @@ spec:
               containerPort: 7761
 
 `
-
