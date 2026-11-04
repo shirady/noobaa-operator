@@ -36,7 +36,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -1120,10 +1119,6 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 		region = "us-east-1"
 	}
 	r.Logger.Infof("identified aws region %s", region)
-	awsHTTPClient := &http.Client{
-		Transport: util.GlobalCARefreshingTransport,
-		Timeout:   10 * time.Second,
-	}
 	var s3Config *aws.Config
 	if r.IsAWSSTSCluster { // handle STS case first
 		// get credentials
@@ -1139,11 +1134,7 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 		roleARNInput := info["role_arn"]
 		webIdentityTokenPathInput := info["web_identity_token_file"]
 		r.Logger.Info("Initiating a Session with AWS")
-		sess, err := session.NewSession(&aws.Config{
-			Region:              aws.String(region),
-			STSRegionalEndpoint: endpoints.RegionalSTSEndpoint,
-			HTTPClient:          awsHTTPClient,
-		})
+		sess, err := session.NewSession()
 		if err != nil {
 			return fmt.Errorf("could not create AWS Session %v", err)
 		}
@@ -1172,8 +1163,11 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 				*result.Credentials.SecretAccessKey,
 				*result.Credentials.SessionToken,
 			),
-			HTTPClient: awsHTTPClient,
-			Region:     &region,
+			HTTPClient: &http.Client{
+				Transport: util.GlobalCARefreshingTransport,
+				Timeout:   10 * time.Second,
+			},
+			Region: &region,
 		}
 	} else { // handle AWS long-lived credentials (not STS)
 		s3Config = &aws.Config{
@@ -1182,8 +1176,11 @@ func (r *Reconciler) prepareAWSBackingStore() error {
 				cloudCredsSecret.StringData["aws_secret_access_key"],
 				"",
 			),
-			HTTPClient: awsHTTPClient,
-			Region:     &region,
+			HTTPClient: &http.Client{
+				Transport: util.GlobalCARefreshingTransport,
+				Timeout:   10 * time.Second,
+			},
+			Region: &region,
 		}
 	}
 
