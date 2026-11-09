@@ -4371,7 +4371,7 @@ data:
     shared_preload_libraries = 'pg_stat_statements'
 `
 
-const Sha256_deploy_internal_deployment_endpoint_yaml = "ecc598bf8cace5d61f798aea2b2194196da95c454de9ab8acd392e552c6bf5c2"
+const Sha256_deploy_internal_deployment_endpoint_yaml = "d901016c964b119ac37471f039d06dfcf3e9e9a10eb1584cbb938046012f6923"
 
 const File_deploy_internal_deployment_endpoint_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -5112,7 +5112,7 @@ spec:
       storage: 30Gi
 `
 
-const Sha256_deploy_internal_pod_agent_yaml = "5cff78327078d03fb7ad086fe8a5225435064aff27ae2715d7ef0fb1fde37fae"
+const Sha256_deploy_internal_pod_agent_yaml = "2e435d78432dbeb8e23caca8ad4e32cc9ed17305591afbf55eaca3d33a8ec653"
 
 const File_deploy_internal_pod_agent_yaml = `apiVersion: v1
 kind: Pod
@@ -6052,7 +6052,7 @@ spec:
             allowPrivilegeEscalation: false
 `
 
-const Sha256_deploy_internal_statefulset_core_yaml = "4f9ea9bf2d1e5a1f63dd26dcfb322d3330d7ef45e44e46f4031c17290a1ef521"
+const Sha256_deploy_internal_statefulset_core_yaml = "89c0d854dfb4b597cb4e3886bf10a11996c31f34e3d7dd4a9139088d5b710892"
 
 const File_deploy_internal_statefulset_core_yaml = `apiVersion: apps/v1
 kind: StatefulSet
@@ -8204,3 +8204,4 @@ spec:
               containerPort: 7761
 
 `
+
