@@ -28,7 +28,9 @@ spec:
       volumes:
         - name: mgmt-secret
           secret:
-            secretName: noobaa-mgmt-serving-cert
+            # Metadata RPC uses the MGMT certificate path, but is served through
+            # the s3 Service on port 8444, so its certificate must match s3 DNS.
+            secretName: noobaa-s3-serving-cert
             optional: true
         - name: s3-secret
           secret:

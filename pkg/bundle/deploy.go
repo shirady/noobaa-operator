@@ -4371,7 +4371,7 @@ data:
     shared_preload_libraries = 'pg_stat_statements'
 `
 
-const Sha256_deploy_internal_deployment_endpoint_yaml = "d901016c964b119ac37471f039d06dfcf3e9e9a10eb1584cbb938046012f6923"
+const Sha256_deploy_internal_deployment_endpoint_yaml = "df445b8f3205fa22678b8bbaa5b0c4f9f922229e365ba9cb67e3132c34732109"
 
 const File_deploy_internal_deployment_endpoint_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -4403,7 +4403,9 @@ spec:
       volumes:
         - name: mgmt-secret
           secret:
-            secretName: noobaa-mgmt-serving-cert
+            # Metadata RPC uses the MGMT certificate path, but is served through
+            # the s3 Service on port 8444, so its certificate must match s3 DNS.
+            secretName: noobaa-s3-serving-cert
             optional: true
         - name: s3-secret
           secret:
