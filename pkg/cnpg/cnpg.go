@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 )
 
 type CnpgResources struct {
@@ -49,6 +50,13 @@ var (
 	CnpgAPIGroup   = getCnpgAPIGroup()
 	CnpgAPIVersion = CnpgAPIGroup + "/v1"
 )
+
+// ShouldAdjustScc indicates if the CloudNativePG operator deployment's security context
+// should be adjusted to be compatible with the OpenShift restricted-v2 SCC.
+// When true, the explicit runAsUser/runAsGroup are removed from the cnpg operator
+// deployment (so OpenShift injects a UID from the namespace range), mirroring the
+// changes applied for OLM deployments in pkg/olm/olm.go addCnpgToCSV.
+var ShouldAdjustScc = false
 
 const (
 	CnpgDeploymentName = "cnpg-controller-manager"
@@ -412,6 +420,13 @@ func modifyResources(cnpgRes *CnpgResources) {
 		}
 	}
 
+	// optionally adjust the deployment's security context to be compatible with
+	// the OpenShift restricted-v2 SCC. For OLM deployments the equivalent changes
+	// are applied in the generated CSV (see pkg/olm/olm.go addCnpgToCSV).
+	if ShouldAdjustScc {
+		AdjustDeploymentSecurityContext(depl)
+	}
+
 	modifyCnpgRbac(cnpgRes)
 
 	// update the service account namespace
@@ -430,6 +445,38 @@ func modifyResources(cnpgRes *CnpgResources) {
 
 	// update the namespace in the service
 	cnpgRes.WebhooksService.Namespace = options.Namespace
+}
+
+// AdjustDeploymentSecurityContext adjusts the cnpg operator deployment's security
+// context to be compatible with the OpenShift restricted-v2 SCC. It removes the
+// explicit runAsUser/runAsGroup (so OpenShift injects a UID from the namespace range)
+// and the pod-level seccompProfile, and hardens the container security context.
+//
+// This mirrors the security context changes applied for OLM deployments in
+// pkg/olm/olm.go addCnpgToCSV
+func AdjustDeploymentSecurityContext(depl *appsv1.Deployment) {
+	// pod-level security context
+	if depl.Spec.Template.Spec.SecurityContext == nil {
+		depl.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
+	}
+	podSc := depl.Spec.Template.Spec.SecurityContext
+	podSc.RunAsUser = nil
+	podSc.RunAsGroup = nil
+	podSc.SeccompProfile = nil
+	podSc.RunAsNonRoot = ptr.To(true)
+
+	// container-level security context
+	if depl.Spec.Template.Spec.Containers[0].SecurityContext == nil {
+		depl.Spec.Template.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{}
+	}
+	containerSc := depl.Spec.Template.Spec.Containers[0].SecurityContext
+	containerSc.RunAsUser = nil
+	containerSc.RunAsGroup = nil
+	containerSc.AllowPrivilegeEscalation = ptr.To(false)
+	containerSc.ReadOnlyRootFilesystem = ptr.To(true)
+	containerSc.Capabilities = &corev1.Capabilities{
+		Drop: []corev1.Capability{"ALL"},
+	}
 }
 
 // modifyYamlBytes modifies the YAML bytes to replace the API group and webhooks path

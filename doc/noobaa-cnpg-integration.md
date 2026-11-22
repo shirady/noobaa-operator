@@ -232,6 +232,22 @@ When executed, database dumps direct to the specified database pod and generate 
 noobaa diagnostics db-dump --dump-from primary
 ```
 
+
+#### OpenShift SCC Compatibility (`--adjust-cnpg-scc`)
+
+The upstream CloudNative-PG operator deployment pins an explicit `runAsUser`/`runAsGroup` (e.g. `10001`) on its controller pod. On OpenShift the `restricted-v2` SCC rejects explicit UIDs outside the per-namespace allowed range, so the `cnpg-controller-manager` pod fails to start when installing via the CLI (the OLM path handles this automatically in the generated CSV).
+
+Passing `--adjust-cnpg-scc` to `install` adjusts the CNPG operator deployment's security context to be OpenShift-SCC-compatible, mirroring the changes applied for OLM in `pkg/olm/olm.go` (`addCnpgToCSV`):
+
+- Pod `securityContext`: removes `runAsUser`, `runAsGroup`, and `seccompProfile`; sets `runAsNonRoot: true`.
+- Container `securityContext`: removes `runAsUser`/`runAsGroup`; sets `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`, and `capabilities.drop: ["ALL"]`.
+
+With `runAsUser`/`runAsGroup` removed, OpenShift injects a UID from the namespace range. The flag is opt-in (default `false`); it is only needed for CLI installs directly on OpenShift.
+
+```bash
+nb install --adjust-cnpg-scc -n <namespace>
+```
+
 ### Troubleshooting
 
 #### Common Issues
