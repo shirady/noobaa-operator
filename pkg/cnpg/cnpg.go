@@ -133,12 +133,54 @@ func RunUpgrade(cmd *cobra.Command, args []string) {
 	util.KubeApply(cnpgRes.CnpgWebhooksClusterRoleBinding)
 	util.KubeApply(cnpgRes.CnpgWebhooksClusterRole)
 	util.KubeApply(cnpgRes.ConfigMap)
+	// The CNPG operator injects the webhook caBundle at runtime. KubeApply replaces the
+	// object with the embedded manifest (whose caBundle is empty), so copy the existing
+	// caBundle onto the objects before applying - otherwise the upgrade overwrites it with
+	// an empty value and webhook TLS verification fails until the CNPG operator restarts
+	// and re-injects it.
+	preserveWebhookCABundles(cnpgRes)
 	util.KubeApply(cnpgRes.MutatingWebhookConfiguration)
 	util.KubeApply(cnpgRes.ValidatingWebhookConfiguration)
 	util.KubeApply(cnpgRes.CnpgOperatorDeployment)
 	util.KubeApply(cnpgRes.CnpgManagerClusterRole)
 	util.KubeApply(cnpgRes.CnpgManagerRole)
 	util.KubeApply(cnpgRes.WebhooksService)
+}
+
+// preserveWebhookCABundles copies the caBundle that the CNPG operator injects at runtime
+// into the mutating/validating webhook configurations onto the objects about to be applied
+// on upgrade, matching per webhook by name. This prevents util.KubeApply (which replaces
+// the object with the embedded manifest whose caBundle is empty) from overwriting it with
+// an empty value.
+func preserveWebhookCABundles(cnpgRes *CnpgResources) {
+	if mutatingWebhookConfig := cnpgRes.MutatingWebhookConfiguration; mutatingWebhookConfig != nil {
+		existingConfig := mutatingWebhookConfig.DeepCopy()
+		if util.KubeCheckQuiet(existingConfig) {
+			caBundleByName := map[string][]byte{}
+			for i := range existingConfig.Webhooks {
+				caBundleByName[existingConfig.Webhooks[i].Name] = existingConfig.Webhooks[i].ClientConfig.CABundle
+			}
+			for i := range mutatingWebhookConfig.Webhooks {
+				if caBundle, ok := caBundleByName[mutatingWebhookConfig.Webhooks[i].Name]; ok && len(caBundle) > 0 {
+					mutatingWebhookConfig.Webhooks[i].ClientConfig.CABundle = caBundle
+				}
+			}
+		}
+	}
+	if validatingWebhookConfig := cnpgRes.ValidatingWebhookConfiguration; validatingWebhookConfig != nil {
+		existingConfig := validatingWebhookConfig.DeepCopy()
+		if util.KubeCheckQuiet(existingConfig) {
+			caBundleByName := map[string][]byte{}
+			for i := range existingConfig.Webhooks {
+				caBundleByName[existingConfig.Webhooks[i].Name] = existingConfig.Webhooks[i].ClientConfig.CABundle
+			}
+			for i := range validatingWebhookConfig.Webhooks {
+				if caBundle, ok := caBundleByName[validatingWebhookConfig.Webhooks[i].Name]; ok && len(caBundle) > 0 {
+					validatingWebhookConfig.Webhooks[i].ClientConfig.CABundle = caBundle
+				}
+			}
+		}
+	}
 }
 
 // CmdUninstall returns a CLI command
