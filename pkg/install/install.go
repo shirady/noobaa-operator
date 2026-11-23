@@ -78,6 +78,7 @@ func CmdUpgrade() *cobra.Command {
 		Run:  RunUpgrade,
 		Args: cobra.NoArgs,
 	}
+	cmd.Flags().Bool("adjust-cnpg-scc", false, "Adjust the CloudNativePG operator deployment's security context to be compatible with the OpenShift restricted-v2 SCC (removes the explicit runAsUser/runAsGroup so OpenShift injects a UID from the namespace range)")
 	return cmd
 }
 
@@ -163,6 +164,7 @@ func RunUpgrade(cmd *cobra.Command, args []string) {
 	system.RunSystemVersionsStatus(cmd, args)
 	log.Printf("Namespace: %s\n", options.Namespace)
 	log.Printf("CNPG upgrade:")
+	cnpg.ShouldAdjustScc, _ = cmd.Flags().GetBool("adjust-cnpg-scc")
 	cnpg.RunUpgrade(cmd, args)
 	log.Printf("CRD upgrade:")
 	crd.RunUpgrade(cmd, args)
