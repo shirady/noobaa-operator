@@ -32,7 +32,7 @@ Use --disable-core-ha to install with a single core pod.`,
 	}
 	cmd.Flags().Bool("use-obc-cleanup-policy", false, "Create NooBaa system with obc cleanup policy")
 	cmd.Flags().Bool("use-standalone-db", false, "Create NooBaa system with standalone DB (Legacy)")
-	cmd.Flags().Bool("adjust-cnpg-scc", false, "Adjust the CloudNativePG operator deployment's security context to be compatible with the OpenShift restricted-v2 SCC (removes the explicit runAsUser/runAsGroup so OpenShift injects a UID from the namespace range)")
+	cmd.Flags().Bool("adjust-cnpg-security-context", false, "Adjust the CloudNativePG operator deployment's security context to be compatible with the OpenShift restricted-v2 SCC (removes the explicit runAsUser/runAsGroup so OpenShift injects a UID from the namespace range)")
 	cmd.Flags().Bool("no-wait", false, "Don't wait for the system to be ready. Exit after applying the changes")
 	cmd.Flags().Bool("disable-core-ha", false, "Disable noobaa-core HA (single core pod). Default is HA enabled (2 pods with lease leader election)")
 	cmd.AddCommand(
@@ -78,7 +78,7 @@ func CmdUpgrade() *cobra.Command {
 		Run:  RunUpgrade,
 		Args: cobra.NoArgs,
 	}
-	cmd.Flags().Bool("adjust-cnpg-scc", false, "Adjust the CloudNativePG operator deployment's security context to be compatible with the OpenShift restricted-v2 SCC (removes the explicit runAsUser/runAsGroup so OpenShift injects a UID from the namespace range)")
+	cmd.Flags().Bool("adjust-cnpg-security-context", false, "Adjust the CloudNativePG operator deployment's security context to be compatible with the OpenShift restricted-v2 SCC (removes the explicit runAsUser/runAsGroup so OpenShift injects a UID from the namespace range)")
 	return cmd
 }
 
@@ -123,7 +123,7 @@ func RunInstall(cmd *cobra.Command, args []string) {
 	useStandaloneDB, _ := cmd.Flags().GetBool("use-standalone-db")
 	useCNPG := !useStandaloneDB
 	if useCNPG {
-		cnpg.ShouldAdjustScc, _ = cmd.Flags().GetBool("adjust-cnpg-scc")
+		cnpg.ShouldAdjustSecurityContext, _ = cmd.Flags().GetBool("adjust-cnpg-security-context")
 		log.Printf("CloudNativePG Operator Install:")
 		cnpg.RunInstall(cmd, args)
 		log.Printf("")
@@ -164,7 +164,7 @@ func RunUpgrade(cmd *cobra.Command, args []string) {
 	system.RunSystemVersionsStatus(cmd, args)
 	log.Printf("Namespace: %s\n", options.Namespace)
 	log.Printf("CNPG upgrade:")
-	cnpg.ShouldAdjustScc, _ = cmd.Flags().GetBool("adjust-cnpg-scc")
+	cnpg.ShouldAdjustSecurityContext, _ = cmd.Flags().GetBool("adjust-cnpg-security-context")
 	cnpg.RunUpgrade(cmd, args)
 	log.Printf("CRD upgrade:")
 	crd.RunUpgrade(cmd, args)

@@ -51,12 +51,12 @@ var (
 	CnpgAPIVersion = CnpgAPIGroup + "/v1"
 )
 
-// ShouldAdjustScc indicates if the CloudNativePG operator deployment's security context
+// ShouldAdjustSecurityContext indicates if the CloudNativePG operator deployment's security context
 // should be adjusted to be compatible with the OpenShift restricted-v2 SCC.
 // When true, the explicit runAsUser/runAsGroup are removed from the cnpg operator
 // deployment (so OpenShift injects a UID from the namespace range), mirroring the
 // changes applied for OLM deployments in pkg/olm/olm.go addCnpgToCSV.
-var ShouldAdjustScc = false
+var ShouldAdjustSecurityContext = false
 
 const (
 	CnpgDeploymentName = "cnpg-controller-manager"
@@ -465,7 +465,7 @@ func modifyResources(cnpgRes *CnpgResources) {
 	// optionally adjust the deployment's security context to be compatible with
 	// the OpenShift restricted-v2 SCC. For OLM deployments the equivalent changes
 	// are applied in the generated CSV (see pkg/olm/olm.go addCnpgToCSV).
-	if ShouldAdjustScc {
+	if ShouldAdjustSecurityContext {
 		AdjustDeploymentSecurityContext(depl)
 	}
 
