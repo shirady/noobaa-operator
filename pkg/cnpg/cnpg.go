@@ -51,13 +51,6 @@ var (
 	CnpgAPIVersion = CnpgAPIGroup + "/v1"
 )
 
-// ShouldAdjustSecurityContext indicates if the CloudNativePG operator deployment's security context
-// should be adjusted to be compatible with the OpenShift restricted-v2 SCC.
-// When true, the explicit runAsUser/runAsGroup are removed from the cnpg operator
-// deployment (so OpenShift injects a UID from the namespace range), mirroring the
-// changes applied for OLM deployments in pkg/olm/olm.go addCnpgToCSV.
-var ShouldAdjustSecurityContext = false
-
 const (
 	CnpgDeploymentName = "cnpg-controller-manager"
 )
@@ -99,6 +92,10 @@ func RunInstall(cmd *cobra.Command, args []string) {
 		util.Panic(err)
 	}
 
+	if util.IsOpenShift() {
+		AdjustDeploymentSecurityContext(cnpgRes.CnpgOperatorDeployment)
+	}
+
 	for _, crd := range cnpgRes.CRDs {
 		util.KubeCreateSkipExisting(crd)
 	}
@@ -122,6 +119,10 @@ func RunUpgrade(cmd *cobra.Command, args []string) {
 	cnpgRes, err := LoadCnpgResources()
 	if err != nil {
 		util.Panic(err)
+	}
+
+	if util.IsOpenShift() {
+		AdjustDeploymentSecurityContext(cnpgRes.CnpgOperatorDeployment)
 	}
 
 	for _, crd := range cnpgRes.CRDs {
@@ -462,13 +463,6 @@ func modifyResources(cnpgRes *CnpgResources) {
 		}
 	}
 
-	// optionally adjust the deployment's security context to be compatible with
-	// the OpenShift restricted-v2 SCC. For OLM deployments the equivalent changes
-	// are applied in the generated CSV (see pkg/olm/olm.go addCnpgToCSV).
-	if ShouldAdjustSecurityContext {
-		AdjustDeploymentSecurityContext(depl)
-	}
-
 	modifyCnpgRbac(cnpgRes)
 
 	// update the service account namespace
@@ -494,8 +488,7 @@ func modifyResources(cnpgRes *CnpgResources) {
 // explicit runAsUser/runAsGroup (so OpenShift injects a UID from the namespace range)
 // and the pod-level seccompProfile, and hardens the container security context.
 //
-// This mirrors the security context changes applied for OLM deployments in
-// pkg/olm/olm.go addCnpgToCSV
+// Used by CLI installs/upgrades on OpenShift and by OLM CSV generation.
 func AdjustDeploymentSecurityContext(depl *appsv1.Deployment) {
 	// pod-level security context
 	if depl.Spec.Template.Spec.SecurityContext == nil {
